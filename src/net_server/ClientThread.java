@@ -23,8 +23,8 @@ public class ClientThread extends SocketThread {
         close();
     }
 
-    public ClientThread(SocketThreadListener listener, String name, Socket socket) {
-        super(listener, name, socket);
+    public ClientThread(SocketThreadListener listener, String name, Socket socket,String action) {
+        super(listener, name, socket,action);
 
         this.createTime=System.currentTimeMillis();
     }
@@ -50,6 +50,12 @@ public class ClientThread extends SocketThread {
     }
 
     void authFail() {
+        sendMessage(Library.getAuthDenied());
+
+//        close();
+
+    }
+    void registrationFail() {
         sendMessage(Library.getAuthDenied());
 
 //        close();

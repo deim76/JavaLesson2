@@ -8,6 +8,7 @@ import network.SocketThreadListener;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Vector;
@@ -122,7 +123,7 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     public void onSocketAccepted(ServerSocketThread thread, ServerSocket server, Socket socket) {
         putLog("Client connected");
         String name = "SocketThread " + socket.getInetAddress() + ":" + socket.getPort();
-        new ClientThread(this, name, socket);
+        new ClientThread(this, name, socket,"");
 
     }
 
@@ -158,7 +159,7 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
     }
 
     @Override
-    public synchronized void onSocketReady(SocketThread thread, Socket socket) {
+    public synchronized void onSocketReady(SocketThread thread, Socket socket,String action) {
         clients.add(thread);
     }
 
@@ -174,18 +175,52 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
 
     private void handleNonAuthMessage(ClientThread client, String msg) {
         String[] arr = msg.split(Library.DELIMITER);
-        if (arr.length != 3 || !arr[0].equals(Library.AUTH_REQUEST)) {
+        if (arr.length != 3 & !arr[0].equals(Library.AUTH_REQUEST) & !arr[0].equals(Library.REGISTRATION_REQUEST)) {
             client.msgFormatError(msg);
             return;
         }
+        if (arr[0].equals(Library.REGISTRATION_REQUEST)){
+            try {
+                SqlClient.Registration(arr[1],arr[2],arr[3]);
+                String login = arr[1];
+                String password = arr[2];
+                String nickname =arr[3];
+            } catch (SQLException e) {
+                e.printStackTrace();
+                client.registrationFail();
+            }
+
+
+        }
+        else if (arr[0].equals(Library.CHANGE_NICKENAME_REQUEST)){
+            try {
+                String login = arr[1];
+                String password = arr[2];
+                String nickname = SqlClient.getNickname(login, password);
+                if (nickname == null) {
+                    putLog("Invalid login attempt: " + login);
+                    client.authFail();
+                    return;
+                }
+                SqlClient.ChangeRegistrationInformation(login,arr[3]);
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                client.registrationFail();
+            }
+        }
+        else {
         String login = arr[1];
         String password = arr[2];
         String nickname = SqlClient.getNickname(login, password);
-        if (nickname == null) {
-            putLog("Invalid login attempt: " + login);
-            client.authFail();
-            return;
-        } else {
+            if (nickname == null) {
+                putLog("Invalid login attempt: " + login);
+                client.authFail();
+                return;
+             }
+
+
+        else {
             ClientThread oldClient = findClientByNickname(nickname);
             client.authAccept(nickname);
             if (oldClient == null) {
@@ -197,6 +232,7 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
 
         }
         sendToAuthClients(Library.getUserList(getUsers()));
+     }
     }
 
     private void handleAuthMessage(ClientThread client, String msg) {

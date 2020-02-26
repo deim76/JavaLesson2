@@ -9,7 +9,12 @@ public class Library {
     /msg_format_error±msg
     /user_list±user1±user2±user3±....
     * */
+    public static final String ACTION_REGISTRATION = "registration";
+    public static final String ACTION_LOGIN = "login";
+    public static final String ACTION_CHANGE_NICKNAME = "change";
     public static final String DELIMITER = "±";
+    public static final String REGISTRATION_REQUEST = "/registration_request";
+    public static final String CHANGE_NICKENAME_REQUEST = "/change_nickname_request";
     public static final String AUTH_REQUEST = "/auth_request";
     public static final String AUTH_ACCEPT = "/auth_accept";
     public static final String AUTH_DENIED = "/auth_denied";
@@ -28,8 +33,14 @@ public class Library {
         return USER_LIST + DELIMITER + users;
     }
 
+    public static String get_registration_request(String login, String password,String nickname) {
+        return REGISTRATION_REQUEST + DELIMITER + login + DELIMITER + password+ DELIMITER + nickname;
+    }
     public static String getAuthRequest(String login, String password) {
         return AUTH_REQUEST + DELIMITER + login + DELIMITER + password;
+    }
+    public static String change_nicknameRequest(String nickname) {
+        return CHANGE_NICKENAME_REQUEST + DELIMITER + nickname;
     }
 
     public static String getAuthAccept(String nickname) {
@@ -38,6 +49,9 @@ public class Library {
 
     public static String getAuthDenied() {
         return AUTH_DENIED;
+    }
+    public static String getRegistrationDenied() {
+        return "Registration fail";
     }
 
     public static String getMsgFormatError(String message) {
