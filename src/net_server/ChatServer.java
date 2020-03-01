@@ -12,6 +12,8 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ChatServer implements ServerSocketThreadListener, SocketThreadListener {
 
@@ -21,7 +23,8 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
 
     public static final int ACTIVITYTIMEOUT = 12000;
     private Vector<SocketThread> clients = new Vector<>();
-    private Thread checkActivity;
+    private ExecutorService executorService;
+  //  private Thread checkActivity;
 
 
     public ChatServer(ChatServerListener listener) {
@@ -32,8 +35,11 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
         if (server != null && server.isAlive()) System.out.println("Server is already started");
 
         else {
+            executorService= Executors.newFixedThreadPool(2);
             server = new ServerSocketThread(this, "Server", port, 2000);
-            checkActivity = new Thread() {
+            executorService.execute(server);
+            executorService.execute(
+                 new Thread() {
                 synchronized void check() {
                     ClientThread client;
                     for (int i = 0; i < clients.size(); i++) {
@@ -61,18 +67,14 @@ public class ChatServer implements ServerSocketThreadListener, SocketThreadListe
                     }
 
                 }
-            };
-            checkActivity.start();
-        }
+            });
+         }
 
     }
 
     public void stop() {
-        if (server == null || !server.isAlive()) {
-            putLog("Server is not running");
-        } else {
-            server.interrupt();
-        }
+         putLog("Server shutdown");
+        executorService.shutdown();
     }
 
     private void putLog(String msg) {

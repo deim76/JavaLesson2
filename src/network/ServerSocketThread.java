@@ -16,7 +16,7 @@ public class ServerSocketThread extends Thread {
         this.port = port;
         this.timeout = timeout;
         this.listener = listener;
-        start();
+        //start();
     }
 
     @Override

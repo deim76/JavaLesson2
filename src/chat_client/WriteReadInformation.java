@@ -5,10 +5,10 @@ import java.util.ArrayList;
 
 
 public class WriteReadInformation {
-    private static String catalog="lesson3\\history";
+    private static String catalog="C:\\Users\\Cats\\Documents\\Учеба\\java\\lesson3\\history";
 
     public static ArrayList<String> Cenzor() throws IOException {
-        String filename="lesson3\\Cenzor.txt";
+        String filename="C:\\Users\\Cats\\Documents\\Учеба\\java\\lesson3\\Cenzor.txt";
         ArrayList<String> result=new ArrayList<>();
 
         BufferedReader bufferedReader = new BufferedReader(new FileReader(filename));
