@@ -10,11 +10,13 @@ public class SocketThread extends Thread {
     private final SocketThreadListener listener;
     private final Socket socket;
     private DataOutputStream out;
+    private String action;
 
-    public SocketThread(SocketThreadListener listener, String name, Socket socket) {
+    public SocketThread(SocketThreadListener listener, String name, Socket socket,String action) {
         super(name);
         this.socket = socket;
         this.listener = listener;
+        this.action=action;
         start();
     }
 
@@ -24,7 +26,7 @@ public class SocketThread extends Thread {
             listener.onSocketStart(this, socket);
             DataInputStream in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
-            listener.onSocketReady(this, socket);
+            listener.onSocketReady(this, socket,action);
             while (!isInterrupted()) {
                 String msg = in.readUTF();
                 listener.onReceiveString(this, socket, msg);

@@ -13,13 +13,14 @@ import java.io.IOException;
 import java.net.Socket;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ClientGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler, SocketThreadListener {
 
     private static final int WIDTH = 600;
     private static final int HEIGHT = 300;
-
+    private ArrayList<String> censorArray;
     private final JTextArea log = new JTextArea();
     private final JPanel panelTop = new JPanel(new GridLayout(2, 3));
     //    private final JTextField tfIPAddress = new JTextField("95.84.209.91");
@@ -30,6 +31,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     private final JTextField tfLogin = new JTextField("Dmitry");
     private final JPasswordField tfPassword = new JPasswordField("123");
     private final JButton btnLogin = new JButton("Login");
+    private  final JButton btnRegistration=new JButton("Registration");
+    private  final JButton btnChangeRegInformation=new JButton("ChangeRegInformation");
 
     private final JPanel panelBottom = new JPanel(new BorderLayout());
     private final JButton btnDisconnect = new JButton("<html><b>Disconnect</b></html>");
@@ -57,6 +60,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         btnSend.addActionListener(this);
         tfMessage.addActionListener(this);
         btnLogin.addActionListener(this);
+        btnRegistration.addActionListener(this);
+        btnChangeRegInformation.addActionListener(this);
         btnDisconnect.addActionListener(this);
         panelBottom.setVisible(false);
 
@@ -66,6 +71,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         panelTop.add(tfLogin);
         panelTop.add(tfPassword);
         panelTop.add(btnLogin);
+        panelTop.add(btnRegistration);
+        panelTop.add(btnChangeRegInformation);
         panelBottom.add(btnDisconnect, BorderLayout.WEST);
         panelBottom.add(tfMessage, BorderLayout.CENTER);
         panelBottom.add(btnSend, BorderLayout.EAST);
@@ -76,16 +83,22 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         add(panelBottom, BorderLayout.SOUTH);
 
         setVisible(true);
+        try {
+            censorArray=WriteReadInformation.Cenzor();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void connect() {
+    private void connect(String action) {
         try {
             Socket socket = new Socket(tfIPAddress.getText(), Integer.parseInt(tfPort.getText()));
-            socketThread = new SocketThread(this, "Client", socket);
+            socketThread = new SocketThread(this, "Client", socket,action);
         } catch (IOException e) {
             showException(Thread.currentThread(), e);
         }
     }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -104,7 +117,13 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         } else if (src == btnSend || src == tfMessage) {
             sendMessage();
         } else if (src == btnLogin) {
-            connect();
+            connect(Library.ACTION_LOGIN);
+        }
+        else if (src == btnRegistration) {
+            connect(Library.ACTION_REGISTRATION);
+        }
+        else if (src == btnChangeRegInformation) {
+            connect(Library.CHANGE_NICKENAME_REQUEST);
         } else if (src == btnDisconnect) {
             socketThread.close();
         } else {
@@ -116,10 +135,20 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         String msg = tfMessage.getText();
         String username = tfLogin.getText();
         if ("".equals(msg)) return;
+        if (censorArray.contains(msg)){
+            System.out.println("Цензура");
+            return;
+        }
         tfMessage.setText(null);
         tfMessage.requestFocusInWindow();
+
+        try {
+            WriteReadInformation.WriteInformation(username,DATE_FORMAT.format((System.currentTimeMillis())) + username + ": " + msg + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         socketThread.sendMessage(Library.getTypeBcastClient(msg));
-        //wrtMsgToLogFile(msg, username);
+
     }
 
     private void wrtMsgToLogFile(String msg, String username) {
@@ -184,12 +213,18 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     }
 
     @Override
-    public void onSocketReady(SocketThread thread, Socket socket) {
+    public void onSocketReady(SocketThread thread, Socket socket,String action) {
         panelBottom.setVisible(true);
         panelTop.setVisible(false);
         String login = tfLogin.getText();
+        String nickname="dm";
         String password = new String(tfPassword.getPassword());
-        thread.sendMessage(Library.getAuthRequest(login, password));
+        String request=Library.getAuthRequest(login, password);
+            if (action==Library.ACTION_REGISTRATION){
+                request=Library.get_registration_request(login, password,nickname);
+            }
+
+        thread.sendMessage(request);
 
     }
 
@@ -229,6 +264,12 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
                 String[] usersArr = users.split(Library.DELIMITER);
                 Arrays.sort(usersArr);
                 userList.setListData(usersArr);
+                try {
+                    String text_history=WriteReadInformation.ReadInformation(usersArr[0]);
+                    log.insert(text_history,0);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 break;
             default:
                 throw new RuntimeException("Unknown message type: " + msg);
